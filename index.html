@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fantasy Draft Room</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f4;
+      --bg-info: #e6f1fb;
+      --bg-success: #eaf3de;
+      --bg-warning: #faeeda;
+      --text-primary: #1a1a18;
+      --text-secondary: #6b6b67;
+      --text-tertiary: #a0a09b;
+      --text-info: #0c447c;
+      --text-success: #27500a;
+      --text-warning: #633806;
+      --text-danger: #a32d2d;
+      --border: rgba(0,0,0,0.13);
+      --border-hover: rgba(0,0,0,0.28);
+      --border-info: rgba(24,95,165,0.35);
+      --border-success: rgba(59,109,17,0.35);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1c1c1a;
+        --bg-secondary: #252523;
+        --bg-info: #042c53;
+        --bg-success: #173404;
+        --bg-warning: #412402;
+        --text-primary: #f0efe8;
+        --text-secondary: #a0a09b;
+        --text-tertiary: #6b6b67;
+        --text-info: #85b7eb;
+        --text-success: #97c459;
+        --text-warning: #ef9f27;
+        --text-danger: #f09595;
+        --border: rgba(255,255,255,0.12);
+        --border-hover: rgba(255,255,255,0.25);
+        --border-info: rgba(133,183,235,0.35);
+        --border-success: rgba(151,196,89,0.35);
+      }
+    }
+
+    body { font-family: var(--font); background: var(--bg-primary); color: var(--text-primary); font-size: 15px; }
+
+    /* ── Layout ── */
+    .app { min-height: 100vh; }
+    .setup-screen { padding: 3rem 1.5rem; max-width: 520px; margin: 0 auto; }
+    .draft-screen { display: none; }
+
+    /* ── Setup ── */
+    .setup-title { font-size: 22px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
+    .setup-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 2rem; }
+    .team-inputs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+    .team-input-row { display: flex; align-items: center; gap: 12px; }
+    .team-num { font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right; }
+    .team-input-row input { flex: 1; }
+    .start-btn { width: 100%; height: 40px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--border-info); background: var(--bg-info); color: var(--text-info); transition: opacity 0.12s; }
+    .start-btn:hover { opacity: 0.8; }
+
+    /* ── Form elements ── */
+    input[type="text"] { height: 34px; padding: 0 10px; border-radius: var(--radius-md); border: 0.5px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-family: var(--font); outline: none; transition: border-color 0.12s; }
+    input[type="text"]:focus { border-color: var(--border-hover); }
+    button { font-family: var(--font); cursor: pointer; }
+
+    /* ── Header ── */
+    .header { padding: 0.9rem 1.5rem; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .app-title { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+    .pick-info { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .pick-badge { font-size: 12px; color: var(--text-secondary); }
+    .pick-badge strong { color: var(--text-primary); font-weight: 500; }
+    .on-clock { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: var(--radius-md); background: var(--bg-success); color: var(--text-success); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .header-btns { display: flex; gap: 6px; }
+    .sm-btn { height: 28px; padding: 0 10px; font-size: 11px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text-secondary); }
+    .sm-btn:hover { background: var(--bg-secondary); }
+
+    /* ── View tabs ── */
+    .view-tabs { display: flex; border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; }
+    .view-tab { padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: all 0.12s; background: transparent; border-left: none; border-right: none; border-top: none; }
+    .view-tab:hover { color: var(--text-primary); }
+    .view-tab.active { color: var(--text-primary); border-bottom-color: var(--text-primary); font-weight: 500; }
+
+    /* ── Draft body ── */
+    .draft-body { display: grid; grid-template-columns: 1fr 280px; min-height: calc(100vh - 97px); }
+    .main { padding: 1.25rem 1.5rem; overflow-y: auto; border-right: 0.5px solid var(--border); }
+    .section-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+    /* ── Controls ── */
+    .controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+    .search-wrap { position: relative; flex: 1; min-width: 130px; }
+    .search-wrap input { width: 100%; padding-left: 28px; height: 30px; }
+    .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--text-secondary); pointer-events: none; }
+    .filter-btn { height: 30px; padding: 0 10px; font-size: 11px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text-secondary); transition: all 0.12s; }
+    .filter-btn:hover { background: var(--bg-secondary); }
+    .filter-btn.active { background: var(--bg-info); color: var(--text-info); border-color: var(--border-info); }
+
+    /* ── Player list ── */
+    .player-list { display: flex; flex-direction: column; gap: 5px; }
+    .player-row { display: flex; align-items: center; gap: 9px; padding: 9px 11px; background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: all 0.12s; }
+    .player-row:hover:not(.drafted-row) { border-color: var(--border-hover); background: var(--bg-secondary); }
+    .player-row.drafted-row { opacity: 0.35; pointer-events: none; }
+    .rank-num { font-size: 11px; color: var(--text-tertiary); min-width: 20px; }
+    .pos-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: var(--radius-md); min-width: 26px; text-align: center; }
+    .pos-QB  { background: #e6f1fb; color: #0c447c; }
+    .pos-RB  { background: #eaf3de; color: #27500a; }
+    .pos-WR  { background: #faeeda; color: #633806; }
+    .pos-TE  { background: #fbeaf0; color: #72243e; }
+    .pos-FLEX{ background: #eeedfe; color: #3c3489; }
+    .player-info { flex: 1; }
+    .player-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .player-team { font-size: 11px; color: var(--text-secondary); }
+    .draft-btn { font-size: 11px; padding: 3px 9px; border-radius: var(--radius-md); border: 0.5px solid var(--border-info); background: transparent; color: var(--text-info); }
+    .draft-btn:hover { background: var(--bg-info); }
+
+    /* ── Sidebar ── */
+    .sidebar { padding: 1.25rem; overflow-y: auto; }
+    .team-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .team-tab { font-size: 10px; padding: 2px 7px; border-radius: var(--radius-md); border: 0.5px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+    .team-tab.active-tab { border-color: var(--border-info); color: var(--text-info); background: var(--bg-info); }
+    .pick-log { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .pick-entry { display: flex; align-items: center; gap: 7px; padding: 7px 9px; background: var(--bg-secondary); border-radius: var(--radius-md); border: 0.5px solid var(--border); }
+    .pick-num { font-size: 10px; color: var(--text-tertiary); min-width: 26px; }
+    .pick-team-name { font-size: 10px; font-weight: 500; color: var(--text-secondary); min-width: 52px; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pick-player { flex: 1; min-width: 0; }
+    .pick-player-name { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pick-player-detail { font-size: 10px; color: var(--text-secondary); }
+    .empty-log { font-size: 13px; color: var(--text-tertiary); text-align: center; padding: 2rem 0; }
+
+    /* ── Roster view ── */
+    .roster-view { padding: 1.25rem 1.5rem; }
+    .roster-team-select { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .roster-team-btn { height: 28px; padding: 0 10px; font-size: 11px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text-secondary); transition: all 0.12s; white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+    .roster-team-btn:hover { background: var(--bg-secondary); }
+    .roster-team-btn.active { background: var(--bg-info); color: var(--text-info); border-color: var(--border-info); }
+    .roster-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .summary-pill { font-size: 11px; padding: 3px 10px; border-radius: var(--radius-md); border: 0.5px solid var(--border); color: var(--text-secondary); background: var(--bg-secondary); }
+    .summary-pill strong { color: var(--text-primary); font-weight: 500; }
+    .roster-grid { display: flex; flex-direction: column; gap: 6px; }
+    .roster-slot { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border); background: var(--bg-primary); }
+    .roster-slot.empty-slot { background: var(--bg-secondary); border-style: dashed; }
+    .slot-label { font-size: 10px; font-weight: 500; min-width: 38px; padding: 2px 6px; border-radius: var(--radius-md); text-align: center; }
+    .slot-QB  { background: #e6f1fb; color: #0c447c; }
+    .slot-RB  { background: #eaf3de; color: #27500a; }
+    .slot-WR  { background: #faeeda; color: #633806; }
+    .slot-TE  { background: #fbeaf0; color: #72243e; }
+    .slot-FLEX{ background: #eeedfe; color: #3c3489; }
+    .slot-BN  { background: var(--bg-secondary); color: var(--text-secondary); }
+    .slot-player-name { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; }
+    .slot-player-meta { font-size: 11px; color: var(--text-secondary); }
+    .slot-empty-text { font-size: 12px; color: var(--text-tertiary); flex: 1; }
+
+    @media (max-width: 640px) {
+      .draft-body { grid-template-columns: 1fr; }
+      .sidebar { border-top: 0.5px solid var(--border); border-right: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Setup screen ── -->
+  <div class="setup-screen" id="setup-screen">
+    <div class="setup-title">Fantasy Draft Room</div>
+    <div class="setup-sub">Name your 7 league teams to get started.</div>
+    <div class="team-inputs" id="team-inputs"></div>
+    <button class="start-btn" onclick="startDraft()">Start draft</button>
+  </div>
+
+  <!-- ── Draft screen ── -->
+  <div class="draft-screen" id="draft-screen">
+
+    <div class="header">
+      <span class="app-title">Draft room</span>
+      <div class="pick-info">
+        <span class="pick-badge">Round <strong id="cur-round">1</strong></span>
+        <span class="pick-badge">Pick <strong id="cur-pick">1</strong></span>
+        <span class="on-clock" id="on-clock-label">—</span>
+      </div>
+      <div class="header-btns">
+        <button class="sm-btn" onclick="undraftLast()">Undo</button>
+        <button class="sm-btn" onclick="goSetup()">Edit teams</button>
+        <button class="sm-btn" onclick="resetDraft()">Reset</button>
+      </div>
+    </div>
+
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-draft" onclick="switchView('draft')">Draft board</button>
+      <button class="view-tab" id="tab-roster" onclick="switchView('roster')">Rosters</button>
+    </div>
+
+    <!-- Draft board view -->
+    <div id="view-draft">
+      <div class="draft-body">
+        <div class="main">
+          <div class="section-label">Available players</div>
+          <div class="controls">
+            <div class="search-wrap">
+              <svg class="search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              <input type="text" id="search" placeholder="Search players..." oninput="renderList()" />
+            </div>
+            <button class="filter-btn active" data-pos="ALL" onclick="setPos('ALL')">All</button>
+            <button class="filter-btn" data-pos="QB" onclick="setPos('QB')">QB</button>
+            <button class="filter-btn" data-pos="RB" onclick="setPos('RB')">RB</button>
+            <button class="filter-btn" data-pos="WR" onclick="setPos('WR')">WR</button>
+            <button class="filter-btn" data-pos="TE" onclick="setPos('TE')">TE</button>
+          </div>
+          <div class="player-list" id="player-list"></div>
+        </div>
+        <div class="sidebar">
+          <div class="section-label" style="margin-bottom:8px;">Teams</div>
+          <div class="team-tabs" id="team-tabs"></div>
+          <div class="section-label">Pick log</div>
+          <div class="pick-log" id="pick-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roster view -->
+    <div id="view-roster" style="display:none;">
+      <div class="roster-view">
+        <div class="roster-team-select" id="roster-team-select"></div>
+        <div id="roster-content"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const NUM_TEAMS = 7;
+  const ROUNDS   = 5;
+  const SLOTS = [
+    { label: 'QB',   pos: 'QB'   },
+    { label: 'RB',   pos: 'RB'   },
+    { label: 'RB',   pos: 'RB'   },
+    { label: 'WR',   pos: 'WR'   },
+    { label: 'WR',   pos: 'WR'   },
+    { label: 'TE',   pos: 'TE'   },
+    { label: 'FLEX', pos: 'FLEX' },
+  ];
+
+  const players = [
+    {id:1, name:"Patrick Mahomes",    pos:"QB", team:"KC",  rank:1},
+    {id:2, name:"Josh Allen",         pos:"QB", team:"BUF", rank:2},
+    {id:3, name:"Lamar Jackson",      pos:"QB", team:"BAL", rank:3},
+    {id:4, name:"Jalen Hurts",        pos:"QB", team:"PHI", rank:4},
+    {id:5, name:"Joe Burrow",         pos:"QB", team:"CIN", rank:5},
+    {id:6, name:"Dak Prescott",       pos:"QB", team:"DAL", rank:6},
+    {id:7, name:"Jordan Love",        pos:"QB", team:"GB",  rank:7},
+    {id:8, name:"CJ Stroud",          pos:"QB", team:"HOU", rank:8},
+    {id:9, name:"Christian McCaffrey",pos:"RB", team:"SF",  rank:1},
+    {id:10,name:"Breece Hall",         pos:"RB", team:"NYJ", rank:2},
+    {id:11,name:"Bijan Robinson",      pos:"RB", team:"ATL", rank:3},
+    {id:12,name:"Jahmyr Gibbs",        pos:"RB", team:"DET", rank:4},
+    {id:13,name:"De'Von Achane",       pos:"RB", team:"MIA", rank:5},
+    {id:14,name:"Saquon Barkley",      pos:"RB", team:"PHI", rank:6},
+    {id:15,name:"Jonathan Taylor",     pos:"RB", team:"IND", rank:7},
+    {id:16,name:"Derrick Henry",       pos:"RB", team:"DAL", rank:8},
+    {id:17,name:"Travis Kelce",        pos:"TE", team:"KC",  rank:1},
+    {id:18,name:"Sam LaPorta",         pos:"TE", team:"DET", rank:2},
+    {id:19,name:"Trey McBride",        pos:"TE", team:"ARI", rank:3},
+    {id:20,name:"Mark Andrews",        pos:"TE", team:"BAL", rank:4},
+    {id:21,name:"Evan Engram",         pos:"TE", team:"JAC", rank:5},
+    {id:22,name:"Dalton Kincaid",      pos:"TE", team:"BUF", rank:6},
+    {id:23,name:"David Njoku",         pos:"TE", team:"CLE", rank:7},
+    {id:24,name:"Jake Ferguson",       pos:"TE", team:"DAL", rank:8},
+    {id:25,name:"CeeDee Lamb",         pos:"WR", team:"DAL", rank:1},
+    {id:26,name:"Tyreek Hill",         pos:"WR", team:"MIA", rank:2},
+    {id:27,name:"Justin Jefferson",    pos:"WR", team:"MIN", rank:3},
+    {id:28,name:"Amon-Ra St. Brown",   pos:"WR", team:"DET", rank:4},
+    {id:29,name:"Ja'Marr Chase",       pos:"WR", team:"CIN", rank:5},
+    {id:30,name:"Puka Nacua",          pos:"WR", team:"LAR", rank:6},
+    {id:31,name:"Davante Adams",       pos:"WR", team:"LV",  rank:7},
+    {id:32,name:"Stefon Diggs",        pos:"WR", team:"HOU", rank:8},
+  ];
+
+  let teamNames       = [];
+  let pickLog         = [];
+  let activePos       = 'ALL';
+  let activeTeamFilter = null;
+  let activeRosterTeam = 0;
+  let currentView     = 'draft';
+
+  /* ── Snake order ── */
+  function snakeTeamIndex(pickIndex) {
+    const round = Math.floor(pickIndex / NUM_TEAMS);
+    const slot  = pickIndex % NUM_TEAMS;
+    return round % 2 === 0 ? slot : NUM_TEAMS - 1 - slot;
+  }
+  function currentRound()       { return Math.floor(pickLog.length / NUM_TEAMS) + 1; }
+  function currentPickInRound() { return (pickLog.length % NUM_TEAMS) + 1; }
+  function currentTeamIdx()     { return snakeTeamIndex(pickLog.length); }
+  function isDone()             { return pickLog.length >= NUM_TEAMS * ROUNDS; }
+
+  /* ── Build setup inputs ── */
+  (function buildSetup() {
+    const container = document.getElementById('team-inputs');
+    const defaults  = ['The Destroyers','Gridiron Gods','Blitz Brigade','End Zone Elite','Red Zone Raiders','Fourth & Long','Touchdown Kings'];
+    for (let i = 0; i < NUM_TEAMS; i++) {
+      const row = document.createElement('div');
+      row.className = 'team-input-row';
+      row.innerHTML = `<span class="team-num">${i + 1}</span>
+        <input type="text" id="tname-${i}" placeholder="Team ${i + 1}" value="${defaults[i]}" maxlength="28" />`;
+      container.appendChild(row);
+    }
+  })();
+
+  function startDraft() {
+    teamNames = [];
+    for (let i = 0; i < NUM_TEAMS; i++) {
+      const v = document.getElementById('tname-' + i).value.trim();
+      teamNames.push(v || 'Team ' + (i + 1));
+    }
+    pickLog          = [];
+    activePos        = 'ALL';
+    activeTeamFilter = null;
+    activeRosterTeam = 0;
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('draft-screen').style.display = 'block';
+    renderAll();
+  }
+
+  function goSetup() {
+    document.getElementById('draft-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+  }
+
+  function resetDraft() {
+    pickLog          = [];
+    activePos        = 'ALL';
+    activeTeamFilter = null;
+    activeRosterTeam = 0;
+    const s = document.getElementById('search');
+    if (s) s.value = '';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.pos === 'ALL'));
+    renderAll();
+  }
+
+  function switchView(v) {
+    currentView = v;
+    document.getElementById('view-draft').style.display  = v === 'draft'  ? 'block' : 'none';
+    document.getElementById('view-roster').style.display = v === 'roster' ? 'block' : 'none';
+    document.getElementById('tab-draft').classList.toggle('active',  v === 'draft');
+    document.getElementById('tab-roster').classList.toggle('active', v === 'roster');
+    if (v === 'roster') renderRosterView();
+  }
+
+  function draftPlayer(id) {
+    if (isDone()) return;
+    if (pickLog.find(e => e.playerId === id)) return;
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    pickLog.push({
+      overallPick: pickLog.length + 1,
+      round:       currentRound(),
+      teamIdx:     currentTeamIdx(),
+      playerId:    id,
+      playerName:  p.name,
+      pos:         p.pos,
+      nflTeam:     p.team,
+    });
+    renderAll();
+  }
+
+  function undraftLast() {
+    if (!pickLog.length) return;
+    pickLog.pop();
+    renderAll();
+  }
+
+  function setPos(pos) {
+    activePos = pos;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.pos === pos));
+    renderList();
+  }
+
+  function toggleTeamFilter(i) {
+    activeTeamFilter = activeTeamFilter === i ? null : i;
+    renderSidebar();
+  }
+
+  function selectRosterTeam(i) {
+    activeRosterTeam = i;
+    renderRosterView();
+  }
+
+  /* ── Render all ── */
+  function renderAll() {
+    renderHeader();
+    renderList();
+    renderSidebar();
+    if (currentView === 'roster') renderRosterView();
+  }
+
+  function renderHeader() {
+    const lbl = document.getElementById('on-clock-label');
+    if (isDone()) {
+      document.getElementById('cur-round').textContent = ROUNDS;
+      document.getElementById('cur-pick').textContent  = NUM_TEAMS;
+      lbl.textContent       = 'Draft complete!';
+      lbl.style.background  = 'var(--bg-secondary)';
+      lbl.style.color       = 'var(--text-secondary)';
+      return;
+    }
+    document.getElementById('cur-round').textContent = currentRound();
+    document.getElementById('cur-pick').textContent  = currentPickInRound();
+    lbl.textContent      = teamNames[currentTeamIdx()] + ' on the clock';
+    lbl.style.background = '';
+    lbl.style.color      = '';
+  }
+
+  function renderList() {
+    const q          = (document.getElementById('search')?.value || '').toLowerCase();
+    const draftedIds = new Set(pickLog.map(e => e.playerId));
+    let filtered     = players.filter(p => {
+      const posMatch    = activePos === 'ALL' || p.pos === activePos;
+      const searchMatch = !q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q);
+      return posMatch && searchMatch;
+    });
+    filtered.sort((a, b) => {
+      const da = draftedIds.has(a.id), db = draftedIds.has(b.id);
+      if (da && !db) return 1;
+      if (!da && db) return -1;
+      return 0;
+    });
+    const list = document.getElementById('player-list');
+    if (!list) return;
+    if (!filtered.length) {
+      list.innerHTML = '<div style="font-size:13px;color:var(--text-tertiary);padding:1rem 0;">No players found.</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(p => {
+      const drafted = draftedIds.has(p.id);
+      return `<div class="player-row ${drafted ? 'drafted-row' : ''}" onclick="${drafted || isDone() ? '' : 'draftPlayer(' + p.id + ')'}">
+        <span class="rank-num">#${p.rank}</span>
+        <span class="pos-badge pos-${p.pos}">${p.pos}</span>
+        <div class="player-info">
+          <div class="player-name">${p.name}</div>
+          <div class="player-team">${p.team}</div>
+        </div>
+        ${drafted
+          ? '<span style="font-size:10px;color:var(--text-tertiary);">Drafted</span>'
+          : (!isDone() ? `<button class="draft-btn" onclick="event.stopPropagation();draftPlayer(${p.id})">Draft</button>` : '')}
+      </div>`;
+    }).join('');
+  }
+
+  function renderSidebar() {
+    const tabs = document.getElementById('team-tabs');
+    if (!tabs) return;
+    tabs.innerHTML = teamNames.map((t, i) => {
+      const count = pickLog.filter(e => e.teamIdx === i).length;
+      return `<span class="team-tab ${activeTeamFilter === i ? 'active-tab' : ''}" onclick="toggleTeamFilter(${i})" title="${t}">${t} (${count})</span>`;
+    }).join('');
+
+    const log     = document.getElementById('pick-log');
+    if (!log) return;
+    const entries = activeTeamFilter !== null ? pickLog.filter(e => e.teamIdx === activeTeamFilter) : pickLog;
+    if (!entries.length) { log.innerHTML = '<div class="empty-log">No picks yet.</div>'; return; }
+
+    log.innerHTML = [...entries].reverse().map(e => `
+      <div class="pick-entry">
+        <span class="pick-num">${e.round}.${e.overallPick}</span>
+        <span class="pick-team-name" title="${teamNames[e.teamIdx]}">${teamNames[e.teamIdx]}</span>
+        <div class="pick-player">
+          <div class="pick-player-name">${e.playerName}</div>
+          <div class="pick-player-detail">${e.pos} · ${e.nflTeam}</div>
+        </div>
+        <span class="pos-badge pos-${e.pos}" style="font-size:9px;">${e.pos}</span>
+      </div>`).join('');
+
+    if (pickLog.length > 0 && activeTeamFilter === null) {
+      log.innerHTML += `<div style="text-align:center;margin-top:8px;">
+        <button class="sm-btn" onclick="undraftLast()">Undo last pick</button>
+      </div>`;
+    }
+  }
+
+  /* ── Roster builder ── */
+  function buildRoster(teamIdx) {
+    const picks  = pickLog.filter(e => e.teamIdx === teamIdx);
+    const used   = new Set();
+    const filled = [];
+    for (const slot of SLOTS) {
+      let found = null;
+      if (slot.pos === 'FLEX') {
+        found = picks.find(p => !used.has(p.playerId) && ['RB','WR','TE'].includes(p.pos)) || null;
+      } else {
+        found = picks.find(p => !used.has(p.playerId) && p.pos === slot.pos) || null;
+      }
+      if (found) used.add(found.playerId);
+      filled.push({ slot, player: found || null });
+    }
+    const bench = picks.filter(p => !used.has(p.playerId));
+    return { filled, bench };
+  }
+
+  function renderRosterView() {
+    const sel = document.getElementById('roster-team-select');
+    if (!sel) return;
+    sel.innerHTML = teamNames.map((t, i) =>
+      `<button class="roster-team-btn ${activeRosterTeam === i ? 'active' : ''}" onclick="selectRosterTeam(${i})" title="${t}">${t}</button>`
+    ).join('');
+
+    const content   = document.getElementById('roster-content');
+    const { filled, bench } = buildRoster(activeRosterTeam);
+    const picks     = pickLog.filter(e => e.teamIdx === activeRosterTeam);
+    const totalPicks= picks.length;
+    const counts    = { QB:0, RB:0, WR:0, TE:0 };
+    picks.forEach(p => { if (counts[p.pos] !== undefined) counts[p.pos]++; });
+
+    let html = `<div class="roster-summary">
+      <span class="summary-pill"><strong>${totalPicks}</strong> / ${ROUNDS} picks</span>
+      <span class="summary-pill">QB <strong>${counts.QB}</strong></span>
+      <span class="summary-pill">RB <strong>${counts.RB}</strong></span>
+      <span class="summary-pill">WR <strong>${counts.WR}</strong></span>
+      <span class="summary-pill">TE <strong>${counts.TE}</strong></span>
+    </div>
+    <div class="section-label" style="margin-bottom:8px;">Starting lineup</div>
+    <div class="roster-grid">`;
+
+    for (const { slot, player } of filled) {
+      if (player) {
+        html += `<div class="roster-slot">
+          <span class="slot-label slot-${slot.label}">${slot.label}</span>
+          <span class="slot-player-name">${player.playerName}</span>
+          <span class="slot-player-meta">${player.nflTeam}</span>
+          <span class="pos-badge pos-${player.pos}" style="font-size:9px;">${player.pos}</span>
+        </div>`;
+      } else {
+        html += `<div class="roster-slot empty-slot">
+          <span class="slot-label slot-${slot.label}">${slot.label}</span>
+          <span class="slot-empty-text">Empty</span>
+        </div>`;
+      }
+    }
+    html += '</div>';
+
+    if (bench.length) {
+      html += `<div class="section-label" style="margin:1.25rem 0 8px;">Bench</div><div class="roster-grid">`;
+      bench.forEach(p => {
+        html += `<div class="roster-slot">
+          <span class="slot-label slot-BN">BN</span>
+          <span class="slot-player-name">${p.playerName}</span>
+          <span class="slot-player-meta">${p.nflTeam}</span>
+          <span class="pos-badge pos-${p.pos}" style="font-size:9px;">${p.pos}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    if (!totalPicks) {
+      html += '<div style="font-size:13px;color:var(--text-tertiary);padding:2rem 0;text-align:center;">No picks yet for this team.</div>';
+    }
+
+    content.innerHTML = html;
+  }
+</script>
+</body>
+</html>
