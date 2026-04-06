@@ -165,6 +165,29 @@
   </style>
 </head>
 <body>
+
+<!-- Login screen -->
+<div id="login-screen" style="display:flex; align-items:center; justify-content:center; min-height:100vh; font-family:sans-serif;">
+  <div style="text-align:center; padding:2rem;">
+    <div style="font-size:22px; font-weight:500; margin-bottom:8px;">Playoff Fantasy Football</div>
+    <div style="font-size:14px; color:#6b6b67; margin-bottom:2rem;">Sign in to access the draft room</div>
+    <button onclick="signIn()" style="padding:10px 24px; font-size:14px; cursor:pointer; border-radius:8px; border:1px solid #dadce0; background:#fff; display:inline-flex; align-items:center; gap:10px;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" />
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<!-- Access denied screen -->
+<div id="denied-screen" style="display:none; align-items:center; justify-content:center; min-height:100vh; font-family:sans-serif;">
+  <div style="text-align:center; padding:2rem;">
+    <div style="font-size:22px; font-weight:500; margin-bottom:8px;">Access Denied</div>
+    <div style="font-size:14px; color:#6b6b67; margin-bottom:2rem;">Your account isn't on the league invite list.</div>
+    <button onclick="signOut()" style="padding:8px 20px; font-size:13px; cursor:pointer; border-radius:8px; border:1px solid #dadce0; background:#fff;">Sign out</button>
+  </div>
+</div>
+
+<div id="app-root" style="display:none;">
 <div class="app">
 
   <!-- ── Setup screen ── -->
@@ -179,6 +202,8 @@
   <div class="draft-screen" id="draft-screen">
 
     <div class="header">
+	<span id="user-email" style="font-size:11px; color:#6b6b67;"></span>
+	<button onclick="signOut()" class="sm-btn">Sign out</button>
       <span class="app-title">Draft room</span>
       <div class="pick-info">
         <span class="pick-badge">Round <strong id="cur-round">1</strong></span>
@@ -236,6 +261,7 @@
     </div>
 
   </div>
+</div>
 </div>
 
 <script>
@@ -568,5 +594,60 @@
     content.innerHTML = html;
   }
 </script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCZtf6dXNeiNnRqEuPcb6s06_j-UHShCk0",
+  authDomain: "playoff-fantasy-football-fd177.firebaseapp.com",
+  projectId: "playoff-fantasy-football-fd177",
+  storageBucket: "playoff-fantasy-football-fd177.firebasestorage.app",
+  messagingSenderId: "246550111443",
+  appId: "1:246550111443:web:ee8d75f71b92429e58e026",
+  measurementId: "G-YWSK7319V7"
+};
+
+// Allowed emails — add your league members here
+  const ALLOWED_EMAILS = [
+    "define.element@gmail.com"
+  ];
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  function signIn() {
+    auth.signInWithPopup(provider).catch(err => console.error(err));
+  }
+
+  function signOut() {
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged(user => {
+    const loginScreen = document.getElementById('login-screen');
+    const appEl       = document.getElementById('app-root');
+    const deniedScreen= document.getElementById('denied-screen');
+
+    if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+      // Allowed — show the app
+      document.getElementById('user-email').textContent = user.email;
+      loginScreen.style.display  = 'none';
+      deniedScreen.style.display = 'none';
+      appEl.style.display        = 'block';
+    } else if (user) {
+      // Signed in but not on the list
+      loginScreen.style.display  = 'none';
+      appEl.style.display        = 'none';
+      deniedScreen.style.display = 'flex';
+    } else {
+      // Not signed in
+      loginScreen.style.display  = 'flex';
+      appEl.style.display        = 'none';
+      deniedScreen.style.display = 'none';
+    }
+  });
+</script>
+
 </body>
 </html>
