@@ -597,6 +597,9 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyCZtf6dXNeiNnRqEuPcb6s06_j-UHShCk0",
   authDomain: "playoff-fantasy-football-fd177.firebaseapp.com",
@@ -607,14 +610,9 @@ const firebaseConfig = {
   measurementId: "G-YWSK7319V7"
 };
 
-// Allowed emails — add your league members here
-  const ALLOWED_EMAILS = [
-    "define.element@gmail.com"
-	"playoffs.fantasy.football@gmail.com"
-  ];
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
+  const db   = firebase.firestore();
   const provider = new firebase.auth.GoogleAuthProvider();
 
   function signIn() {
@@ -625,27 +623,41 @@ const firebaseConfig = {
     auth.signOut();
   }
 
-  auth.onAuthStateChanged(user => {
-    const loginScreen = document.getElementById('login-screen');
-    const appEl       = document.getElementById('app-root');
-    const deniedScreen= document.getElementById('denied-screen');
+  auth.onAuthStateChanged(async user => {
+    const loginScreen  = document.getElementById('login-screen');
+    const appEl        = document.getElementById('app-root');
+    const deniedScreen = document.getElementById('denied-screen');
 
-    if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
-      // Allowed — show the app
-      document.getElementById('user-email').textContent = user.email;
-      loginScreen.style.display  = 'none';
-      deniedScreen.style.display = 'none';
-      appEl.style.display        = 'block';
-    } else if (user) {
-      // Signed in but not on the list
-      loginScreen.style.display  = 'none';
-      appEl.style.display        = 'none';
-      deniedScreen.style.display = 'flex';
-    } else {
-      // Not signed in
+    if (!user) {
+      // Not signed in — show login
       loginScreen.style.display  = 'flex';
       appEl.style.display        = 'none';
       deniedScreen.style.display = 'none';
+      return;
+    }
+
+    // Signed in — check Firestore allowlist
+    try {
+      const doc = await db
+        .collection('allowlist')
+        .doc(user.email.toLowerCase())
+        .get();
+
+      if (doc.exists && doc.data().allowed === true) {
+        // On the list — show the app
+        document.getElementById('user-email').textContent = user.email;
+        loginScreen.style.display  = 'none';
+        deniedScreen.style.display = 'none';
+        appEl.style.display        = 'block';
+      } else {
+        // Not on the list — show denied
+        loginScreen.style.display  = 'none';
+        appEl.style.display        = 'none';
+        deniedScreen.style.display = 'flex';
+      }
+    } catch (err) {
+      console.error('Error checking allowlist:', err);
+      auth.signOut();
     }
   });
 </script>
